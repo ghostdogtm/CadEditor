@@ -61,7 +61,7 @@ public class Data
     new LevelRec(0x0, 47, 1, 1, 0x0, "", 1),
   };
   
-  public List<ObjectRec> getObjectsJungleBook(int levelNo)
+  public List<ObjectList> getObjectsJungleBook(int levelNo)
   {
     if (levelNo == 0)
       return getObjectsJungleBook1(levelNo);
@@ -69,17 +69,17 @@ public class Data
       return getObjectsJungleBook2(levelNo);
   }
   
-  public bool setObjectsJungleBook(int levelNo, List<ObjectRec> objects)
+  public bool setObjectsJungleBook(int levelNo, List<ObjectList> objLists)
   {
     if (levelNo == 0)
-      return setObjectsJungleBook1(levelNo, objects);
+      return setObjectsJungleBook1(levelNo, objLists);
     else
-      return setObjectsJungleBook2(levelNo, objects);
+      return setObjectsJungleBook2(levelNo, objLists);
   }
   
   //copy-paste
   //addrs saved in ram at 77-79-7E-81
-  public List<ObjectRec> getObjectsJungleBook1(int levelNo)
+  public List<ObjectList> getObjectsJungleBook1(int levelNo)
   {
     LevelRec lr = ConfigScript.getLevelRec(levelNo);
     int objCount = lr.objCount;
@@ -97,13 +97,14 @@ public class Data
         var obj = new ObjectRec(v, 0, 0, realx, realy, dataDict);
         objects.Add(obj);
     }
-    return objects;
+    return new List<ObjectList> { new ObjectList { objects = objects, name = "Objects" } };
   }
 
-  public bool setObjectsJungleBook1(int levelNo, List<ObjectRec> objects)
+  public bool setObjectsJungleBook1(int levelNo, List<ObjectList> objLists)
   {
     LevelRec lr = ConfigScript.getLevelRec(levelNo);
     int objCount = lr.objCount;
+    var objects = objLists[0].objects;
     for (int i = 0; i < objects.Count; i++)
     {
         var obj = objects[i];
@@ -126,7 +127,7 @@ public class Data
   
   //copy-paste
    //addrs saved in ram at 77-79-7E-81
-  public List<ObjectRec> getObjectsJungleBook2(int levelNo)
+  public List<ObjectList> getObjectsJungleBook2(int levelNo)
   {
     LevelRec lr = ConfigScript.getLevelRec(levelNo);
     int objCount = lr.objCount;
@@ -144,13 +145,14 @@ public class Data
         var obj = new ObjectRec(v, 0, 0, realx, realy, dataDict);
         objects.Add(obj);
     }
-    return objects;
+    return new List<ObjectList> { new ObjectList { objects = objects, name = "Objects" } };
   }
 
-  public bool setObjectsJungleBook2(int levelNo, List<ObjectRec> objects)
+  public bool setObjectsJungleBook2(int levelNo, List<ObjectList> objLists)
   {
     LevelRec lr = ConfigScript.getLevelRec(levelNo);
     int objCount = lr.objCount;
+    var objects = objLists[0].objects;
     for (int i = 0; i < objects.Count; i++)
     {
         var obj = objects[i];
@@ -171,7 +173,7 @@ public class Data
     return true;
   }
   
-  public void sortObjectsJungleBook(int levelNo, List<ObjectRec> objects)
+  public void sortObjectsJungleBook(int levelNo, int listNo, List<ObjectRec> objects)
   {
     objects.Sort((o1, o2) => { return o1.x > o2.x ? 1 : o1.x < o2.x ? -1 : o1.y < o2.y ? -1 : o1.y > o2.y ? 1 : 0; });
   }
@@ -183,7 +185,7 @@ public class Data
     return new LevelLayerData(1, 1, layer);
   }
   
-  public Dictionary<String,int> getObjectDictionary(int type)
+  public Dictionary<String,int> getObjectDictionary(int listNo, int type)
   {
     return new Dictionary<String, int> { {"data", 0} };
   }
@@ -224,7 +226,7 @@ public class Data
     return Utils.mergeArrays(part1, part2);
   }
   
-  public byte[] getBigBlocksJB(int bigTileIndex)
+  public BigBlock[] getBigBlocksJB(int bigTileIndex)
   {
     var bigBlockRec = BigBlocksAddrs[bigTileIndex];
     byte[] ans = new byte[256 * 4];
@@ -236,7 +238,7 @@ public class Data
     var bb2 = Utils.readDataFromAlignedArrays(Globals.romdata, bigBlocksAddr2, bigBlocksCount2);
     bb1.CopyTo(ans, 0);
     bb2.CopyTo(ans, 128*4);
-    return ans;
+    return Utils.unlinearizeBigBlocks(ans, 2, 2);
   }
   
   public void setBlocksJB(int blockIndex, ObjRec[] objects)
@@ -247,12 +249,13 @@ public class Data
     Utils.writeBlocksToAlignedArrays(secondPart, Globals.romdata, BlocksAddrs[blockIndex].loAddr, 0x80);
   }
   
-  public void setBigBlocksJB(int bigTileIndex, byte[] bigBlockIndexes)
+  public void setBigBlocksJB(int bigTileIndex, BigBlock[] bigBlockIndexes)
   {
+    var data = Utils.linearizeBigBlocks(bigBlockIndexes);
     var bigBlockRec = BigBlocksAddrs[bigTileIndex];
     var secondPart  = new byte[bigBlockRec.loCount*4];
-    Array.Copy(bigBlockIndexes, 128*4, secondPart, 0, bigBlockRec.loCount*4);
-    Utils.writeDataToAlignedArrays(bigBlockIndexes, Globals.romdata, bigBlockRec.hiAddr, bigBlockRec.hiCount);
-    Utils.writeDataToAlignedArrays(secondPart     , Globals.romdata, bigBlockRec.loAddr, bigBlockRec.loCount);
+    Array.Copy(data, 128*4, secondPart, 0, bigBlockRec.loCount*4);
+    Utils.writeDataToAlignedArrays(data      , Globals.romdata, bigBlockRec.hiAddr, bigBlockRec.hiCount);
+    Utils.writeDataToAlignedArrays(secondPart, Globals.romdata, bigBlockRec.loAddr, bigBlockRec.loCount);
   }
 }

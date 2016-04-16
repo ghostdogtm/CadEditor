@@ -9,9 +9,9 @@ public class Data : CapcomBase
   public OffsetRec getVideoObjOffset()  { return new OffsetRec(0, 16  , 0x1000); }
   public OffsetRec getBigBlocksOffset() { return new OffsetRec(0 , 8   , 0x4000); }
   public OffsetRec getBlocksOffset()    { return new OffsetRec(0 , 8   , 0x4000); }
-  public OffsetRec getScreensOffset()   { return new OffsetRec(34135   , 1 , 160*46);   }
+  public OffsetRec getScreensOffset()   { return new OffsetRec(0x84AF, 1 , 160*47);   }
   public override int getScreenWidth()     { return 160; }
-  public override int getScreenHeight()    { return 46; }
+  public override int getScreenHeight()    { return 47; }
   public string getBlocksFilename()        { return "tom_and_jerry_1.png"; }
   public IList<LevelRec> getLevelRecs()    { return levelRecs; }
   public GetObjectsFunc getObjectsFunc()   { return getObjects;  }
@@ -27,7 +27,7 @@ public class Data : CapcomBase
     new LevelRec(0x0, 52, 1, 1, 0x0),
   };
   
-   public List<ObjectRec> getObjects(int levelNo)
+   public List<ObjectList> getObjects(int levelNo)
   {
     LevelRec lr = ConfigScript.getLevelRec(levelNo);
     int objCount = lr.objCount;
@@ -46,14 +46,15 @@ public class Data : CapcomBase
         var obj = new ObjectRec(v, 0, 0, realx, realy, dataDict);
         objects.Add(obj);
     }
-    return objects;
+    return new List<ObjectList> { new ObjectList { objects = objects, name = "Objects" } };
   }
 
-  public bool setObjects(int levelNo, List<ObjectRec> objects)
+  public bool setObjects(int levelNo, List<ObjectList> objLists)
   {
     LevelRec lr = ConfigScript.getLevelRec(levelNo);
     int objCount = lr.objCount;
     int baseAddr = 0x8153;
+    var objects = objLists[0].objects;
     for (int i = 0; i < objects.Count; i++)
     {
       var obj = objects[i];
@@ -70,7 +71,6 @@ public class Data : CapcomBase
       Globals.romdata[baseAddr + i * 4 + 3] = 0xFF;
     }
     return true;
-    return true;
   }
   
   LevelLayerData getLayout(int levelNo)
@@ -79,7 +79,7 @@ public class Data : CapcomBase
     layer[0] = 0;
     return new LevelLayerData(1, 1, layer);
   }
-  public Dictionary<String,int> getObjectDictionary(int type)
+  public Dictionary<String,int> getObjectDictionary(int listNo, int type)
   {
     return new Dictionary<String, int> { {"data", 0} };
   }

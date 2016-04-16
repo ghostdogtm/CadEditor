@@ -3,6 +3,8 @@ using System.Windows.Forms;
 using System.Globalization;
 using System.IO;
 using System.Drawing;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace CadEditor
 {
@@ -44,6 +46,7 @@ namespace CadEditor
             for (int i = startIndex; i < startIndex+count; i++)
             {
                 var but = new Button();
+                but.FlatStyle = FlatStyle.Flat;
                 but.Size = buttonSize;
                 but.ImageList = buttonsImages;
                 but.ImageIndex = i;
@@ -168,9 +171,9 @@ namespace CadEditor
 
         public static LevelLayerData getLayoutLinear(int curActiveLayout)
         {
-            int layoutAddr = Globals.getLayoutAddr(curActiveLayout);
-            int width =  Globals.getLevelWidth(curActiveLayout);
-            int height = Globals.getLevelHeight(curActiveLayout);
+            int layoutAddr = ConfigScript.getLayoutAddr(curActiveLayout);
+            int width =  ConfigScript.getLevelWidth(curActiveLayout);
+            int height = ConfigScript.getLevelHeight(curActiveLayout);
             byte[] layer = new byte[width * height];
             for (int i = 0; i < width * height; i++)
                 layer[i] = Globals.romdata[layoutAddr + i];
@@ -187,6 +190,39 @@ namespace CadEditor
         public static void setBigTileToScreen(int[] screenData, int index, int value)
         {
             screenData[index] = value;
+        }
+
+        //strip ints to bytes
+        public static byte[] linearizeBigBlocks(BigBlock[] bigBlocks)
+        {
+            if ((bigBlocks == null)  || (bigBlocks.Length == 0))
+            {
+                return new byte[0];
+            }
+            byte[] result = new byte[bigBlocks.Length * bigBlocks[0].getSize()];
+            for (int i = 0; i < bigBlocks.Length; i++)
+            {
+                int size = bigBlocks[i].getSize();
+                var byteIndexes = bigBlocks[i].indexes.Select(old => (byte)old).ToArray();
+                Array.Copy(byteIndexes, 0, result, i*size, size);
+            }
+            return result;
+        }
+
+        public static BigBlock[] unlinearizeBigBlocks(byte[] data, int w, int h)
+        {
+            if ((data == null)  || (data.Length == 0))
+            {
+                return new BigBlock[0];
+            }
+            int size = w*h;
+            BigBlock[] result = new BigBlock[data.Length / size];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = new BigBlock(w, h);
+                Array.Copy(data, i*size, result[i].indexes, 0, size);
+            }
+            return result;
         }
 
         public static bool getBit(byte b, int bit)
@@ -336,26 +372,48 @@ namespace CadEditor
             }
         }*/
 
-        public static byte[] getBigBlocksCapcomDefault(int bigTileIndex)
+        public static byte[] readLinearBigBlockData(int bigTileIndex)
         {
-            int tileSize = ConfigScript.isBlockSize4x4() ? 16 : 4;
+            return readLinearBigBlockData(bigTileIndex, -1);
+        }
+
+
+        public static byte[] readLinearBigBlockData(int bigTileIndex, int tileSize)
+        {
+            //if tileSize == -1, try read it from config
+            if (tileSize == -1)
+            {
+                tileSize = ConfigScript.isBlockSize4x4() ? 16 : 4;
+            }
+
             int wordSize = ConfigScript.isUseSegaGraphics() ? 2 : 1;
             int size = ConfigScript.getBigBlocksCount() * tileSize * wordSize;
+
             byte[] bigBlockIndexes = new byte[size];
-            var bigBlocksAddr = Globals.getBigTilesAddr(bigTileIndex);
+            var bigBlocksAddr = ConfigScript.getBigTilesAddr(bigTileIndex);
             for (int i = 0; i < size; i++)
                 bigBlockIndexes[i] = Globals.romdata[bigBlocksAddr + i];
             return bigBlockIndexes;
         }
 
-        public static void setBigBlocksCapcomDefault(int bigTileIndex, byte[] bigBlockIndexes)
+        public static BigBlock[] getBigBlocksCapcomDefault(int bigTileIndex)
         {
-            int tileSize = ConfigScript.isBlockSize4x4() ? 16 : 4;
-            int wordSize = ConfigScript.isUseSegaGraphics() ? 2 : 1;
-            int size = ConfigScript.getBigBlocksCount() * tileSize * wordSize;
-            int addr = Globals.getBigTilesAddr(bigTileIndex);
+            var data = readLinearBigBlockData(bigTileIndex);
+            return Utils.unlinearizeBigBlocks(data, 2, 2);
+        }
+
+        public static void writeLinearBigBlockData(int bigTileIndex, byte[] bigBlockIndexes)
+        {
+            int size = bigBlockIndexes.Length;
+            int addr = ConfigScript.getBigTilesAddr(bigTileIndex);
             for (int i = 0; i < size; i++)
                 Globals.romdata[addr + i] = bigBlockIndexes[i];
+        }
+
+        public static void setBigBlocksCapcomDefault(int bigTileIndex, BigBlock[] bigBlockIndexes)
+        {
+            var data = Utils.linearizeBigBlocks(bigBlockIndexes);
+            writeLinearBigBlockData(bigTileIndex, data);
         }
 
         public static byte[] readDataFromAlignedArrays(byte[] romdata, int addr, int count)
@@ -703,7 +761,7 @@ namespace CadEditor
             }
         }
 
-        public static  void defaultDrawObject(Graphics g, ObjectRec curObject, bool isSelected, float curScale, ImageList objectSprites)
+        public static  void defaultDrawObject(Graphics g, ObjectRec curObject, int listNo, bool isSelected, float curScale, ImageList objectSprites)
         {
             int x = curObject.x, y = curObject.y;
             var myFont = new Font(FontFamily.GenericSansSerif, 6.0f);
@@ -720,7 +778,7 @@ namespace CadEditor
                 g.DrawRectangle(new Pen(Brushes.Red, 2.0f), new Rectangle((int)(x * curScale) - 8, (int)(y * curScale) - 8, 16, 16));       
         }
 
-        public static void defaultDrawObjectBig(Graphics g, ObjectRec curObject, bool isSelected, float curScale, Image[] objectSpritesBig)
+        public static void defaultDrawObjectBig(Graphics g, ObjectRec curObject, int listNo, bool isSelected, float curScale, Image[] objectSpritesBig)
         {
             int x = curObject.x, y = curObject.y;
             var myFont = new Font(FontFamily.GenericSansSerif, 6.0f);
@@ -730,6 +788,13 @@ namespace CadEditor
                 g.DrawImage(objectSpritesBig[curObject.type], new Rectangle((int)(x * curScale) - xsize / 2, (int)(y * curScale) - ysize / 2, xsize, ysize));
             if (isSelected)
                 g.DrawRectangle(new Pen(Brushes.Red, 2.0f), new Rectangle((int)(x * curScale) - xsize / 2, (int)(y * curScale) - ysize / 2, xsize, ysize));
+        }
+
+        //wrapper for calling ling function from python.net
+        public static bool seqEquals<T>(T seq1, T seq2)
+            where T : IEnumerable<T>
+        {
+            return seq1.SequenceEqual(seq2);
         }
     }
 }

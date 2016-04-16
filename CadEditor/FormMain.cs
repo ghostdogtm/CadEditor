@@ -133,6 +133,8 @@ namespace CadEditor
             bttShowLayer2.Visible = ConfigScript.getLayersCount() > 1;
             bttLayer.Visible = ConfigScript.getLayersCount() > 1;
 
+            pnGroups.Visible = ConfigScript.getGroups().Length > 0;
+
             resetMapScreenSize();
         }
 
@@ -156,12 +158,11 @@ namespace CadEditor
         private void setBigBlocksIndexes()
         {
           int bigTileIndex = curActiveBlockNo;
-          bigBlockIndexes = ConfigScript.getBigBlocks(bigTileIndex);
         }
 
         private Image[] makeSegaBigBlocks()
         {
-            byte[] mapping = ConfigScript.getBigBlocks(curActiveBigBlockNo);
+            byte[] mapping = ConfigScript.getSegaMapping(curActiveBigBlockNo);
             byte[] videoTiles = ConfigScript.getVideoChunk(curActiveVideoNo);
             byte[] pal = ConfigScript.getPal(curActivePalleteNo);
             int count = ConfigScript.getBigBlocksCount();
@@ -201,7 +202,9 @@ namespace CadEditor
             if (ConfigScript.isUseSegaGraphics())
                 bigImages = makeSegaBigBlocks();
             else
-                bigImages = ConfigScript.videoNes.makeBigBlocks(backId, curActiveLevelForScreen, blockId, bigTileIndex, palId, smallObjectsType, smallBlockScaleFactor, blockWidth, blockHeight, curButtonScale, curViewType, showAxis);
+            {
+                bigImages = ConfigScript.videoNes.makeBigBlocks(backId, blockId, bigTileIndex, palId, smallObjectsType, smallBlockScaleFactor, curButtonScale, curViewType, showAxis);
+            }
             bigBlocks.Images.AddRange(bigImages);
 
             //tt add
@@ -334,7 +337,7 @@ namespace CadEditor
             int TILE_SIZE_Y = (int)(blockHeight * curScale);
             int SIZE = WIDTH * HEIGHT;
             var visibleRect = Utils.getVisibleRectangle(pnView, mapScreen);
-            MapEditor.Render(e.Graphics, bigBlocks, visibleRect, indexes, indexes2, curScale, showLayer1, showLayer2, true, ConfigScript.getScreenVertical() ? TILE_SIZE_Y : TILE_SIZE_X, WIDTH, HEIGHT, ConfigScript.getScreenVertical());
+            MapEditor.Render(e.Graphics, bigBlocks, blockWidth, blockHeight, visibleRect, indexes, indexes2, curScale, showLayer1, showLayer2, true, ConfigScript.getScreenVertical() ? TILE_SIZE_Y : TILE_SIZE_X, WIDTH, HEIGHT, ConfigScript.getScreenVertical());
 
             if (!ConfigScript.getScreenVertical() && showNeiScreens && (curActiveScreen > 0) && showLayer1)
             {
@@ -399,8 +402,6 @@ namespace CadEditor
         private bool showLayer2;
         private int[][] screens;
         private int[][] screens2;
-
-        private byte[] bigBlockIndexes;
 
         public static bool fileLoaded = false;
 
@@ -989,6 +990,11 @@ namespace CadEditor
             resetScreens();
             resetMapScreenSize();
             mapScreen.Invalidate();
+        }
+
+        private void cbAdvanced_CheckedChanged(object sender, EventArgs e)
+        {
+            pnAdvancedParams.Visible = cbAdvanced.Checked;
         }
 
         private void cbPanelNo_SelectedIndexChanged(object sender, EventArgs e)

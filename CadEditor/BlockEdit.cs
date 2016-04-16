@@ -120,7 +120,7 @@ namespace CadEditor
             byte backId = getBackId();
             for (int i = 0; i < 4; i++)
             {
-                Bitmap b = ConfigScript.videoNes.makeImageStrip(ConfigScript.getVideoChunk(backId), palette, i, 2, !showAxis);
+                Bitmap b = ConfigScript.videoNes.makeImageStrip(ConfigScript.getVideoChunk(backId), palette, i, 2, true);
                 videoSprites[i].Images.Clear();
                 videoSprites[i].Images.AddStrip(b);
             }
@@ -528,7 +528,7 @@ namespace CadEditor
             if (data == null)
                 return;
 
-            int addr = Globals.getTilesAddr(getBigBlockNo());
+            int addr = ConfigScript.getTilesAddr(getBigBlockNo());
             for (int i = 0; i < ConfigScript.getBlocksCount(); i++)
             {
                 Globals.romdata[addr + i] = data[i];
