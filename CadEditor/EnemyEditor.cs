@@ -140,7 +140,13 @@ namespace CadEditor
             foreach (var lr in ConfigScript.levelRecs)
                 cbLayoutNo.Items.Add(String.Format("{0}:0x{1:X} ({2}x{3})", lr.name, lr.layoutAddr, lr.width, lr.height));
             Utils.setCbIndexWithoutUpdateLevel(cbLayoutNo, cbLevel_SelectedIndexChanged, curActiveLayout);
+
+            //reload screens
+            screens = Utils.setScreens(getLevelRecForGameType().levelNo);
+            resetObjCheckBoxes();
+
             reloadLevel(reloadObjects);
+            resizeMapScreen();
             mapScreen.Invalidate();
         }
 
@@ -158,23 +164,7 @@ namespace CadEditor
             reloadPictures();
             fillObjPanel();
 
-            int coordXCount = ConfigScript.getScreenWidth(getLevelRecForGameType().levelNo) * 32;
-            int coordYCount =ConfigScript.getScreenHeight(getLevelRecForGameType().levelNo) * 32;
-            int objType = (ConfigScript.getMaxObjType() != -1) ? ConfigScript.getMaxObjType() : 256;
-            int minCoordX = 0;
-            int minCoordY = 0;
-            int minObjType = ConfigScript.getMinObjType();
-            if (!ConfigScript.getScreenVertical())
-            {
-                Utils.setCbItemsCount(cbCoordX, coordXCount - minCoordX, minCoordX, true);
-                Utils.setCbItemsCount(cbCoordY, coordYCount - minCoordY, minCoordY, true);
-            }
-            else
-            {
-                Utils.setCbItemsCount(cbCoordY, coordXCount - minCoordX, minCoordX, true);
-                Utils.setCbItemsCount(cbCoordX, coordYCount - minCoordY, minCoordY, true);
-            }
-            Utils.setCbItemsCount(cbObjType, objType - minObjType, minObjType, true);
+            resetObjCheckBoxes();
 
             Utils.setCbItemsCount(cbVideoNo, ConfigScript.videoOffset.recCount);
             Utils.setCbItemsCount(cbBigBlockNo, ConfigScript.bigBlocksOffset.recCount);
@@ -197,16 +187,42 @@ namespace CadEditor
             lbReadOnly.Visible = readOnly;
 
             btSort.Visible = ConfigScript.sortObjectsFunc != null;
+            resizeMapScreen();
 
+            Utils.setCbItemsCount(cbBigObjectNo, 256, 0, true);
+            cbLevel_SelectedIndexChanged(cbLayoutNo, new EventArgs());
+        }
+
+        private void resetObjCheckBoxes()
+        {
+            int coordXCount = ConfigScript.getScreenWidth(getLevelRecForGameType().levelNo) * 32;
+            int coordYCount = ConfigScript.getScreenHeight(getLevelRecForGameType().levelNo) * 32;
+            int objType = (ConfigScript.getMaxObjType() != -1) ? ConfigScript.getMaxObjType() : 256;
+            int minCoordX = 0;
+            int minCoordY = 0;
+            int minObjType = ConfigScript.getMinObjType();
+            if (!ConfigScript.getScreenVertical())
+            {
+                Utils.setCbItemsCount(cbCoordX, coordXCount - minCoordX, minCoordX, true);
+                Utils.setCbItemsCount(cbCoordY, coordYCount - minCoordY, minCoordY, true);
+            }
+            else
+            {
+                Utils.setCbItemsCount(cbCoordY, coordXCount - minCoordX, minCoordX, true);
+                Utils.setCbItemsCount(cbCoordX, coordYCount - minCoordY, minCoordY, true);
+            }
+            Utils.setCbItemsCount(cbObjType, objType - minObjType, minObjType, true);
+        }
+
+        private void resizeMapScreen()
+        {
             int blockWidth = ConfigScript.getBlocksPicturesWidth();
             int scrLevelNo = getLevelRecForGameType().levelNo;
             if (ConfigScript.getScreenVertical())
                 mapScreen.Size = new Size(ConfigScript.getScreenHeight(scrLevelNo) * blockWidth * 2, (ConfigScript.getScreenWidth(scrLevelNo) + 2) * 64);
             else
                 mapScreen.Size = new Size((ConfigScript.getScreenWidth(scrLevelNo) + 2) * blockWidth * 2, ConfigScript.getScreenHeight(scrLevelNo) * 64);
-
-            Utils.setCbItemsCount(cbBigObjectNo, 256, 0, true);
-            cbLevel_SelectedIndexChanged(cbLayoutNo, new EventArgs());
+            //mapScreen.Size = back3.Size;
         }
 
         private void cbScreenNo_SelectedIndexChanged(object sender, EventArgs e)
@@ -401,6 +417,8 @@ namespace CadEditor
             return new Point(curActiveScreen % width, curActiveScreen / width);
         }
 
+        //Image back3 = Image.FromFile("back_tunnel_3.png");
+
         private void paintBack(Graphics g)
         {
             //temp hack for compatibility. for cad-games scrNo -= 1 !!!
@@ -419,6 +437,8 @@ namespace CadEditor
             {
                 g.FillRectangle(Brushes.Black, new Rectangle(0, 0, 512, 512));
             }
+
+            //mapScreen.Image = back3;
         }
 
         private void mapScreen_Paint(object sender, PaintEventArgs e)
