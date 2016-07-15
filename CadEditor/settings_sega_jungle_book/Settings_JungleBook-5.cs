@@ -15,15 +15,15 @@ public class Data
   //public bool isBuildScreenFromSmallBlocks() { return true; }
   public int getWordLen()              { return 2;}
   
-  public OffsetRec getPalOffset()       { return new OffsetRec(0xE958E, 1, 64    );   }
+  public OffsetRec getPalOffset()       { return new OffsetRec(0xe974e, 1, 64    );   }
   public OffsetRec getVideoOffset()     { return new OffsetRec(0, 1, 0     );   }
   public OffsetRec getVideoObjOffset()  { return new OffsetRec(0, 1, 0     );   }
-  public OffsetRec getBigBlocksOffset() { return new OffsetRec(0x128842, 1, 0x8000);  }
+  public OffsetRec getBigBlocksOffset() { return new OffsetRec(0x1583bc, 1, 0x8000);  }
   public OffsetRec getBlocksOffset()    { return new OffsetRec(0, 1, 0     );   }
-  public OffsetRec getScreensOffset()   { return new OffsetRec(0, 1, 194*42);   }
+  public OffsetRec getScreensOffset()   { return new OffsetRec(0, 1, 114*86);   }
   public int getBigBlocksCount()        { return 0x1000; }
-  public int getScreenWidth()           { return 194; }
-  public int getScreenHeight()          { return 42; }
+  public int getScreenWidth()           { return 114; }
+  public int getScreenHeight()          { return 86; }
   public IList<LevelRec> getLevelRecs() { return null; }
   
   public GetVideoChunkFunc    getVideoChunkFunc()    { return getVideoChuck;   }
@@ -37,8 +37,10 @@ public class Data
   
   public LoadSegaBackFunc     loadSegaBackFunc()     { return loadBack;}
   public SaveSegaBackFunc     saveSegaBackFunc()     { return saveBack;}
+  public int getSegaBackWidth()  { return 64; }
+  public int getSegaBackHeight() { return 32; }
   
-  private string BACK_NAME   = "SegaJungleBookBack_1.bin";
+  private string BACK_NAME   = "SegaJungleBookBack_5.bin";
   
   public byte[] loadBack()
   {
@@ -52,7 +54,7 @@ public class Data
   
   public byte[] getVideoChuck(int videoPageId)
   {
-    return Utils.readBinFile("videoBack_1.bin");
+    return Utils.readBinFile("videoBack_5.bin");
   }
   
   public bool isBigBlockEditorEnabled() { return false;  }
