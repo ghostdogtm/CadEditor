@@ -70,10 +70,10 @@ namespace CadEditor
             }
             blocksPanel.ResumeLayout();
 
-            Utils.setCbItemsCount(cbVideoNo, ConfigScript.videoOffset.recCount);
-            Utils.setCbItemsCount(cbBigBlockNo, ConfigScript.bigBlocksOffset.recCount);
-            Utils.setCbItemsCount(cbBlockNo, ConfigScript.blocksOffset.recCount);
-            Utils.setCbItemsCount(cbPaletteNo, ConfigScript.palOffset.recCount);
+            UtilsGui.setCbItemsCount(cbVideoNo, ConfigScript.videoOffset.recCount);
+            UtilsGui.setCbItemsCount(cbBigBlockNo, ConfigScript.bigBlocksOffsets[0].recCount);
+            UtilsGui.setCbItemsCount(cbBlockNo, ConfigScript.blocksOffset.recCount);
+            UtilsGui.setCbItemsCount(cbPaletteNo, ConfigScript.palOffset.recCount);
             cbVideoNo.SelectedIndex = 0;
             cbBigBlockNo.SelectedIndex = 0;
             cbBlockNo.SelectedIndex = 0;
@@ -98,10 +98,12 @@ namespace CadEditor
             int height = curHeight;
             byte[] layer = new byte[width * height];
             byte[] scroll = new byte[width * height];
+
+            layer = ConfigScript.getLayoutFunc(curActiveLayout).layer;
+
             for (int i = 0; i < width * height; i++)
             {
                 scroll[i] = Globals.romdata[scrollAddr + i];
-                layer[i] = Globals.romdata[layoutAddr + i];
             }
             curLevelLayerData = new LevelLayerData(width, height, layer, scroll, null);
             curActiveBlock = 0;
@@ -198,7 +200,7 @@ namespace CadEditor
 
         private void cbLevel_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (!Utils.askToSave(ref dirty, saveToFile, returnCbLevelIndex))
+            if (!UtilsGui.askToSave(ref dirty, saveToFile, returnCbLevelIndex))
                 return;
             if (cbLayoutNo.SelectedIndex == -1)
                 return;
@@ -215,7 +217,7 @@ namespace CadEditor
             cbLayoutNo.Items.Clear();
             foreach (var lr in ConfigScript.levelRecs)
                 cbLayoutNo.Items.Add(String.Format("0x{0:X} ({1}x{2})", lr.layoutAddr, lr.width, lr.height));
-            Utils.setCbIndexWithoutUpdateLevel(cbLayoutNo, cbLevel_SelectedIndexChanged, curActiveLayout);
+            UtilsGui.setCbIndexWithoutUpdateLevel(cbLayoutNo, cbLevel_SelectedIndexChanged, curActiveLayout);
             reloadLevelLayer();
         }
 
@@ -280,7 +282,7 @@ namespace CadEditor
 
         private void returnCbLevelIndex()
         {
-            Utils.setCbIndexWithoutUpdateLevel(cbLayoutNo, cbLevel_SelectedIndexChanged, curActiveLayout);
+            UtilsGui.setCbIndexWithoutUpdateLevel(cbLayoutNo, cbLevel_SelectedIndexChanged, curActiveLayout);
         }
 
         private void btSave_Click(object sender, EventArgs e)

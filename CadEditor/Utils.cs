@@ -10,94 +10,6 @@ namespace CadEditor
 {
     public static class Utils
     {
-        public static void setCbItemsCount(ComboBox cb, int count, int first = 0, bool inHex = false)
-        {
-            cb.Items.Clear();
-            if (!inHex)
-            {
-                for (int i = 0; i < count; i++)
-                    cb.Items.Add(first + i);
-            }
-            else
-            {
-                for (int i = 0; i < count; i++)
-                    cb.Items.Add(String.Format("{0:X}", first+i));
-            }
-        }
-
-        public static void setCbIndexWithoutUpdateLevel(ComboBox cb, EventHandler ev, int index = 0)
-        {
-            cb.SelectedIndexChanged -= ev;
-            cb.SelectedIndex = index;
-            cb.SelectedIndexChanged += ev;
-        }
-
-        public static void setCbCheckedWithoutUpdateLevel(CheckBox cb, EventHandler ev, bool index = false)
-        {
-            cb.CheckedChanged -= ev;
-            cb.Checked = index;
-            cb.CheckedChanged += ev;
-        }
-
-        public static void prepareBlocksPanel(FlowLayoutPanel blocksPanel, Size buttonSize, ImageList buttonsImages, EventHandler buttonBlockClick, int startIndex, int count)
-        {
-            blocksPanel.Controls.Clear();
-            blocksPanel.SuspendLayout();
-            for (int i = startIndex; i < startIndex+count; i++)
-            {
-                var but = new Button();
-                but.FlatStyle = FlatStyle.Flat;
-                but.Size = buttonSize;
-                but.ImageList = buttonsImages;
-                but.ImageIndex = i;
-                but.Click += buttonBlockClick;
-                but.Margin = new Padding(0);
-                but.Padding = new Padding(0);
-                blocksPanel.Controls.Add(but);
-            }
-            blocksPanel.ResumeLayout();
-        }
-
-        public static void reloadBlocksPanel(FlowLayoutPanel blocksPanel, ImageList buttonsImages, int startIndex, int count)
-        {
-            for (int i = startIndex, controlIndex = 0; i < startIndex+count; i++, controlIndex++)
-            {
-                var but = (Button)blocksPanel.Controls[controlIndex];
-                but.ImageList = buttonsImages;
-                but.ImageIndex = i;
-            }
-        }
-
-        public delegate bool SaveFunction();
-        public delegate void ReturnComboBoxIndexFunction();
-        public static bool askToSave(ref bool dirty, SaveFunction saveToFile, ReturnComboBoxIndexFunction returnCbLevelIndex)
-        {
-            if (!dirty)
-                return true;
-            DialogResult dr = MessageBox.Show("Level was changed. Do you want to save current level?", "Save", MessageBoxButtons.YesNoCancel);
-            if (dr == DialogResult.Cancel)
-            {
-                if (returnCbLevelIndex != null)
-                  returnCbLevelIndex();
-                return false;
-            }
-            else if (dr == DialogResult.Yes)
-            {
-                if (!saveToFile())
-                {
-                    if (returnCbLevelIndex != null)
-                      returnCbLevelIndex();
-                    return false;
-                }
-                return true;
-            }
-            else
-            {
-                dirty = false;
-                return true;
-            }
-        }
-
         public static int parseInt(string value, int defaultVal = 0)
         {
             int ans = defaultVal;
@@ -209,17 +121,18 @@ namespace CadEditor
             return result;
         }
 
-        public static BigBlock[] unlinearizeBigBlocks(byte[] data, int w, int h)
+        public static T[] unlinearizeBigBlocks<T>(byte[] data, int w, int h)
+            where T : BigBlock
         {
             if ((data == null)  || (data.Length == 0))
             {
-                return new BigBlock[0];
+                return new T[0];
             }
             int size = w*h;
-            BigBlock[] result = new BigBlock[data.Length / size];
+            T[] result = new T[data.Length / size];
             for (int i = 0; i < result.Length; i++)
             {
-                result[i] = new BigBlock(w, h);
+                result[i] = Activator.CreateInstance(typeof(T), w,h) as T;
                 Array.Copy(data, i*size, result[i].indexes, 0, size);
             }
             return result;
@@ -314,9 +227,25 @@ namespace CadEditor
             return data;
         }
 
-        //capcom version
+        public static ObjRec[] readBlocksLinear(byte[] romdata, int addr, int count)
+        {
+            var objects = new ObjRec[count];
+            for (int i = 0; i < count; i++)
+            {
+                byte c1, c2, c3, c4, typeColor;
+                c1 = romdata[addr + i * 5 + 0];
+                c2 = romdata[addr + i * 5 + 1];
+                c3 = romdata[addr + i * 5 + 2];
+                c4 = romdata[addr + i * 5 + 3];
+                typeColor = romdata[addr + i * 5 + 4];
+                objects[i] = new ObjRec(c1, c2, c3, c4, typeColor);
+            }
+            return objects;
+        }
+
         public static ObjRec[] readBlocksFromAlignedArrays(byte[] romdata, int addr, int count)
         {
+            //capcom version
             var objects = new ObjRec[count];
             for (int i = 0; i < count; i++)
             {
@@ -330,7 +259,7 @@ namespace CadEditor
             }
             return objects;
         }
-        
+
         /*public static ObjRec[] readBlocksFromUnalignedArrays(byte[] romdata, int addr1, int addr2, int addr3, int addr4, int addr5, int count)
         {
             var objects = new ObjRec[count];
@@ -346,16 +275,29 @@ namespace CadEditor
             return objects;
         }*/
 
+        public static void writeBlocksLinear(ObjRec[] objects, byte[] romdata, int addr, int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var obj = objects[i];
+                romdata[addr + i * 5 + 0] = (byte)obj.c1;
+                romdata[addr + i * 5 + 1] = (byte)obj.c2;
+                romdata[addr + i * 5 + 2] = (byte)obj.c3;
+                romdata[addr + i * 5 + 3] = (byte)obj.c4;
+                romdata[addr + i * 5 + 4] = (byte)obj.typeColor;
+            }
+        }
+
         public static void writeBlocksToAlignedArrays(ObjRec[] objects, byte[] romdata, int addr, int count)
         {
             for (int i = 0; i < count; i++)
             {
                 var obj = objects[i];
-                romdata[addr + i] = obj.c1;
-                romdata[addr + count * 1 + i] = obj.c2;
-                romdata[addr + count * 2 + i] = obj.c3;
-                romdata[addr + count * 3 + i] = obj.c4;
-                romdata[addr + count * 4 + i] = obj.typeColor;
+                romdata[addr + i] = (byte)obj.c1;
+                romdata[addr + count * 1 + i] = (byte)obj.c2;
+                romdata[addr + count * 2 + i] = (byte)obj.c3;
+                romdata[addr + count * 3 + i] = (byte)obj.c4;
+                romdata[addr + count * 4 + i] = (byte)obj.typeColor;
             }
         }
 
@@ -372,13 +314,13 @@ namespace CadEditor
             }
         }*/
 
-        public static byte[] readLinearBigBlockData(int bigTileIndex)
+        public static byte[] readLinearBigBlockData(int hierLevel, int bigTileIndex)
         {
-            return readLinearBigBlockData(bigTileIndex, -1);
+            return readLinearBigBlockData(hierLevel, bigTileIndex, -1);
         }
 
 
-        public static byte[] readLinearBigBlockData(int bigTileIndex, int tileSize)
+        public static byte[] readLinearBigBlockData(int hierLevel, int bigTileIndex, int tileSize)
         {
             //if tileSize == -1, try read it from config
             if (tileSize == -1)
@@ -387,10 +329,10 @@ namespace CadEditor
             }
 
             int wordSize = ConfigScript.isUseSegaGraphics() ? 2 : 1;
-            int size = ConfigScript.getBigBlocksCount() * tileSize * wordSize;
+            int size = ConfigScript.getBigBlocksCount(hierLevel) * tileSize * wordSize;
 
             byte[] bigBlockIndexes = new byte[size];
-            var bigBlocksAddr = ConfigScript.getBigTilesAddr(bigTileIndex);
+            var bigBlocksAddr = ConfigScript.getBigTilesAddr(hierLevel, bigTileIndex);
             for (int i = 0; i < size; i++)
                 bigBlockIndexes[i] = Globals.romdata[bigBlocksAddr + i];
             return bigBlockIndexes;
@@ -398,14 +340,14 @@ namespace CadEditor
 
         public static BigBlock[] getBigBlocksCapcomDefault(int bigTileIndex)
         {
-            var data = readLinearBigBlockData(bigTileIndex);
-            return Utils.unlinearizeBigBlocks(data, 2, 2);
+            var data = readLinearBigBlockData(0, bigTileIndex);
+            return Utils.unlinearizeBigBlocks<BigBlock>(data, 2, 2);
         }
 
-        public static void writeLinearBigBlockData(int bigTileIndex, byte[] bigBlockIndexes)
+        public static void writeLinearBigBlockData(int hierLevel, int bigTileIndex, byte[] bigBlockIndexes)
         {
             int size = bigBlockIndexes.Length;
-            int addr = ConfigScript.getBigTilesAddr(bigTileIndex);
+            int addr = ConfigScript.getBigTilesAddr(hierLevel, bigTileIndex);
             for (int i = 0; i < size; i++)
                 Globals.romdata[addr + i] = bigBlockIndexes[i];
         }
@@ -413,7 +355,7 @@ namespace CadEditor
         public static void setBigBlocksCapcomDefault(int bigTileIndex, BigBlock[] bigBlockIndexes)
         {
             var data = Utils.linearizeBigBlocks(bigBlockIndexes);
-            writeLinearBigBlockData(bigTileIndex, data);
+            writeLinearBigBlockData(0, bigTileIndex, data);
         }
 
         public static byte[] readDataFromAlignedArrays(byte[] romdata, int addr, int count)
@@ -425,7 +367,6 @@ namespace CadEditor
                 data[i * 4 + 1] = Globals.romdata[addr + count * 1 + i];
                 data[i * 4 + 2] = Globals.romdata[addr + count * 2 + i];
                 data[i * 4 + 3] = Globals.romdata[addr + count * 3 + i];
-                //data[i *4 + 4] = Globals.romdata[addr + count*4 + i]; // for tt
             }
             return data;
         }
@@ -438,7 +379,6 @@ namespace CadEditor
                 Globals.romdata[addr + count * 1 + i] = data[i * 4 + 1];
                 Globals.romdata[addr + count * 2 + i] = data[i * 4 + 2];
                 Globals.romdata[addr + count * 3 + i] = data[i * 4 + 3];
-                //Globals.romdata[addr + count*4 + i] = data[i *4 + 4]; // for tt
             }
         }
 
@@ -463,6 +403,54 @@ namespace CadEditor
                 Globals.romdata[addr2 + i] = data[i * 4 + 1];
                 Globals.romdata[addr3 + i] = data[i * 4 + 2];
                 Globals.romdata[addr4 + i] = data[i * 4 + 3];
+            }
+        }
+
+        public static ObjRec[] getBlocksFromTiles16Pal1(int blockIndex)
+        {
+            return readBlocksLinearTiles16Pal1(Globals.romdata, ConfigScript.getTilesAddr(blockIndex), ConfigScript.getPalBytesAddr(), ConfigScript.getBlocksCount());
+        }
+
+        public static void setBlocksFromTiles16Pal1(int blockIndex, ObjRec[] blocksData)
+        {
+            writeBlocksLinearTiles16Pal1(blocksData, Globals.romdata, ConfigScript.getTilesAddr(blockIndex), ConfigScript.getPalBytesAddr(), ConfigScript.getBlocksCount());
+        }
+
+        public static ObjRec[] readBlocksLinearTiles16Pal1(byte[] romdata, int addr, int palBytesAddr, int count)
+        {
+            int BLOCK_W = 4;
+            int BLOCK_H = 4;
+            int BLOCK_S = BLOCK_H * BLOCK_H;
+            var objects = new ObjRec[count];
+            for (int i = 0; i < count; i++)
+            {
+                var indexes = new int[BLOCK_S];
+                var palBytes = new int[BLOCK_S / 4];
+                for (int bi = 0; bi < BLOCK_S; bi++)
+                {
+                    indexes[bi] = romdata[addr + i * BLOCK_S + bi];
+                }
+                int palByte = romdata[palBytesAddr + i];
+                palBytes = new int[] { (palByte >> 0) & 3, (palByte >> 2) & 3, (palByte >> 4) & 3, (palByte >> 6) & 3 };
+
+                objects[i] = new ObjRec(BLOCK_W, BLOCK_H, indexes, palBytes);
+            }
+            return objects;
+        }
+
+        public static void writeBlocksLinearTiles16Pal1(ObjRec[] objects, byte[] romdata, int addr, int palBytesAddr, int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var obj = objects[i];
+                int BLOCK_S = obj.indexes.Length;
+                for (int bi = 0; bi < BLOCK_S; bi++)
+                {
+                    romdata[addr + i * BLOCK_S + bi] = (byte)obj.indexes[bi];
+                }
+                var objPalBytes = obj.palBytes;
+                int palByte = objPalBytes[0] | objPalBytes[1] << 2 | objPalBytes[2] << 4 | objPalBytes[3] << 6;
+                romdata[palBytesAddr + i] = (byte)palByte;
             }
         }
 
@@ -523,89 +511,6 @@ namespace CadEditor
             data[addr + 1] = (byte)((word&0x00FF0000) >> 16);
             data[addr + 2] = (byte)((word&0x0000FF00) >> 8 );
             data[addr + 3] = (byte)(word & 0xFF);
-        }
-
-        public static Image ResizeBitmap(Image sourceBMP, int width, int height)
-        {
-            Image result = new Bitmap(width, height);
-            using (Graphics g = Graphics.FromImage(result))
-                g.DrawImage(sourceBMP, 0, 0, width, height);
-            return result;
-        }
-
-        public static Rectangle getVisibleRectangle(Control panel, Control insideControl)
-        {
-            Rectangle rect = panel.RectangleToScreen(panel.ClientRectangle);
-            while (panel != null)
-            {
-                rect = Rectangle.Intersect(rect, panel.RectangleToScreen(panel.ClientRectangle));
-                panel = panel.Parent;
-            }
-            rect = insideControl.RectangleToClient(rect);
-            return rect;
-        }
-
-        public static void setBlocks(ImageList bigBlocks, float curButtonScale = 2, int blockWidth = 32, int blockHeight = 32, MapViewType curDrawType = MapViewType.Tiles, bool showAxis = true)
-        {
-            MapViewType curViewType = curDrawType;
-
-            bigBlocks.Images.Clear();
-            //smallBlocks.Images.Clear();
-            bigBlocks.ImageSize = new Size((int)(curButtonScale * blockWidth), (int)(curButtonScale * blockHeight));
-
-            //if using pictures
-            if (ConfigScript.usePicturesInstedBlocks)
-            {
-                if (ConfigScript.blocksPicturesFilename != "")
-                {
-                    var imSrc = Image.FromFile(ConfigScript.blocksPicturesFilename);
-                    var imResized = Utils.ResizeBitmap(imSrc, (int)(curButtonScale * blockWidth * ConfigScript.getBigBlocksCount()), (int)(curButtonScale * blockHeight));
-                    bigBlocks.Images.AddStrip(imResized);
-                }
-                if (ConfigScript.blocksPicturesFilenames != null)
-                {
-                    for (int i = 0; i < ConfigScript.blocksPicturesFilenames.Length; i++)
-                    {
-                        var fname = ConfigScript.blocksPicturesFilenames[i];
-                        var imSrc = Image.FromFile(fname);
-                        //WARNING!!! blockWidth param scale not supported for blocksPicturesFilenames
-                        //var imResized = Utils.ResizeBitmap(imSrc, curButtonScale * blockWidth * ConfigScript.getBigBlocksCount(), curButtonScale * blockHeight);
-                        var imResized = imSrc;
-                        bigBlocks.Images.AddStrip(imResized);
-                    }
-                }
-                for (int i = bigBlocks.Images.Count; i < 256; i++)
-                    bigBlocks.Images.Add(VideoHelper.emptyScreen((int)(blockWidth * curButtonScale), (int)(blockHeight * curButtonScale)));
-                if (showAxis)
-                {
-                    for (int i = 0; i < 256; i++)
-                    {
-                        var im1 = bigBlocks.Images[i];
-                        using (var g = Graphics.FromImage(im1))
-                            g.DrawRectangle(new Pen(Color.FromArgb(255, 255, 255, 255)), new Rectangle(0, 0, (int)(blockWidth * curButtonScale), (int)(blockHeight * curButtonScale)));
-                        bigBlocks.Images[i] = im1;
-                    }
-                }
-
-                if (curViewType == MapViewType.ObjNumbers)
-                {
-                    int _bbRectPosX = (int)((blockWidth / 2) * curButtonScale);
-                    int _bbRectSizeX = (int)((blockWidth / 2) * curButtonScale);
-                    int _bbRectPosY = (int)((blockHeight / 2) * curButtonScale);
-                    int _bbRectSizeY = (int)((blockHeight / 2) * curButtonScale);
-                    for (int i = 0; i < 256; i++)
-                    {
-                        var im1 = bigBlocks.Images[i];
-                        using (var g = Graphics.FromImage(im1))
-                        {
-                            g.FillRectangle(new SolidBrush(Color.FromArgb(192, 255, 255, 255)), new Rectangle(0, 0, _bbRectSizeX * 2, _bbRectSizeY * 2));
-                            g.DrawString(String.Format("{0:X}", i), new Font("Arial", 16), Brushes.Red, new Point(0, 0));
-                        }
-                        bigBlocks.Images[i] = im1;
-                    }
-
-                }
-            }
         }
 
         //for capcom mmc3 mappers, only for certain banks
@@ -691,7 +596,6 @@ namespace CadEditor
 
         public static byte[] readVideoBankFrom16Pointers(int[] ptrs)
         {
-            //local version for cad & dwd
             byte[] videoChunk = new byte[Globals.VIDEO_PAGE_SIZE];
             for (int i = 0; i < ptrs.Length; i++)
             {
@@ -761,7 +665,7 @@ namespace CadEditor
             }
         }
 
-        public static  void defaultDrawObject(Graphics g, ObjectRec curObject, int listNo, bool isSelected, float curScale, ImageList objectSprites)
+        public static  void defaultDrawObject(Graphics g, ObjectRec curObject, int listNo, bool isSelected, float curScale, ImageList objectSprites, bool inactive)
         {
             int x = curObject.x, y = curObject.y;
             var myFont = new Font(FontFamily.GenericSansSerif, 6.0f);
@@ -774,20 +678,33 @@ namespace CadEditor
                 g.FillRectangle(Brushes.Black, new Rectangle((int)(x * curScale) - 8, (int)(y * curScale) - 8, 16, 16));
                 g.DrawString(curObject.type.ToString("X3"), myFont, Brushes.White, new Point((int)(x * curScale) - 8, (int)(y * curScale) - 8));
             }
+            var selectRect = new Rectangle((int)(x * curScale) - 8, (int)(y * curScale) - 8, 16, 16);
             if (isSelected)
-                g.DrawRectangle(new Pen(Brushes.Red, 2.0f), new Rectangle((int)(x * curScale) - 8, (int)(y * curScale) - 8, 16, 16));       
+                g.DrawRectangle(new Pen(Brushes.Red, 2.0f), selectRect);
+            if (inactive)
+            {
+                g.FillRectangle(new SolidBrush(Color.FromArgb(128, 255, 255, 255)), selectRect);
+                g.DrawRectangle(new Pen(Brushes.Black, 1.0f), selectRect);
+            }
         }
 
-        public static void defaultDrawObjectBig(Graphics g, ObjectRec curObject, int listNo, bool isSelected, float curScale, Image[] objectSpritesBig)
+        public static void defaultDrawObjectBig(Graphics g, ObjectRec curObject, int listNo, bool isSelected, float curScale, Image[] objectSpritesBig, bool inactive)
         {
             int x = curObject.x, y = curObject.y;
             var myFont = new Font(FontFamily.GenericSansSerif, 6.0f);
             int xsize = objectSpritesBig[curObject.type].Size.Width;
             int ysize = objectSpritesBig[curObject.type].Size.Height;
+            var rect = new Rectangle((int)(x * curScale) - xsize / 2, (int)(y * curScale) - ysize / 2, xsize, ysize);
             if (curObject.type < objectSpritesBig.Length)
-                g.DrawImage(objectSpritesBig[curObject.type], new Rectangle((int)(x * curScale) - xsize / 2, (int)(y * curScale) - ysize / 2, xsize, ysize));
+                g.DrawImage(objectSpritesBig[curObject.type], rect);
             if (isSelected)
-                g.DrawRectangle(new Pen(Brushes.Red, 2.0f), new Rectangle((int)(x * curScale) - xsize / 2, (int)(y * curScale) - ysize / 2, xsize, ysize));
+                g.DrawRectangle(new Pen(Brushes.Red, 2.0f), rect);
+
+            if (inactive)
+            {
+                g.FillRectangle(new SolidBrush(Color.FromArgb(128, 255, 255, 255)), rect);
+                g.DrawRectangle(new Pen(Brushes.Black, 1.0f), rect);
+            }
         }
 
         //wrapper for calling ling function from python.net
@@ -795,6 +712,15 @@ namespace CadEditor
             where T : IEnumerable<T>
         {
             return seq1.SequenceEqual(seq2);
+        }
+
+        public static string patchConfigTemplate(string configText, Dictionary<string, object> patchDict)
+        {
+            foreach (var kv in patchDict)
+            {
+                configText = configText.Replace(kv.Key, kv.Value.ToString());
+            }
+            return configText;
         }
     }
 }

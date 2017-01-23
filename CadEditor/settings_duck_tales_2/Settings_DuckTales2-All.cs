@@ -1,4 +1,5 @@
 using CadEditor;
+using PluginMapEditor;
 using System.Collections.Generic;
 using System;
 //css_include Settings_CapcomBase.cs;
@@ -8,16 +9,16 @@ public class Data:CapcomBase
   {
     return new string[] 
     {
+      "PluginMapEditor.dll",
       "PluginChrView.dll",
-      "PluginEditLayout.dll"
+      "PluginEditLayout.dll",
     };
   }
-  public GameType getGameType()  { return GameType.DT2; }
   public bool isShowScrollsInLayout() { return false; }
   
   public OffsetRec getPalOffset()       { return new OffsetRec(0x3E2F, 12   , 16);     }
-  public OffsetRec getVideoOffset()     { return new OffsetRec(0x4D10 , 5   , 0xD00);  }
-  public OffsetRec getVideoObjOffset()  { return new OffsetRec(0x4D10 , 5   , 0xD00);  }
+  public OffsetRec getVideoOffset()     { return new OffsetRec(0x4D10 , 7   , 0xD00);  }
+  public OffsetRec getVideoObjOffset()  { return new OffsetRec(0x4D10 , 7   , 0xD00);  }
   public OffsetRec getBigBlocksOffset() { return new OffsetRec(0x7310 , 3   , 0x4000); }
   public OffsetRec getBlocksOffset()    { return new OffsetRec(0x1008A , 5  , 0x440);  }
   public OffsetRec getScreensOffset()   { return new OffsetRec(0x11d5a, 300 , 0x40);   }
@@ -27,6 +28,7 @@ public class Data:CapcomBase
   public override GetVideoPageAddrFunc getVideoPageAddrFunc() { return getDuckTalesVideoAddress; }
   public override GetVideoChunkFunc    getVideoChunkFunc()    { return getDuckTalesVideoChunk;   }
   public override SetVideoChunkFunc    setVideoChunkFunc()    { return null; }
+  public override GetBlocksFunc        getBlocksFunc()        { return getBlocksDt2;}
   public override SetBlocksFunc        setBlocksFunc()        { return setBlocksDt2;}
   public override GetBigBlocksFunc     getBigBlocksFunc()     { return getBigBlocksDt2;}
   public override SetBigBlocksFunc     setBigBlocksFunc()     { return setBigBlocksDt2;}
@@ -61,6 +63,16 @@ public class Data:CapcomBase
     "no","no","no","no","no","no","no","no"
   };
   
+  public MapInfo[] getMapsInfo() { return mapsDt2; }
+  public LoadMapFunc getLoadMapFunc() { return MapUtils.loadMapDt2; }
+  public SaveMapFunc getSaveMapFunc() { return MapUtils.saveMapDt2; }
+
+  MapInfo[] mapsDt2 = new MapInfo[]
+  { 
+      new MapInfo(){   dataAddr = 0xF200, palAddr = 0x3DCF, videoNo = 6 }
+  };
+
+  
   //--------------------------------------------------------------------------------------------
   //duck tales specific
   public int getDuckTalesVideoAddress(int id)
@@ -70,7 +82,14 @@ public class Data:CapcomBase
   
   public byte[] getDuckTalesVideoChunk(int videoPageId)
   {
-    return Utils.readVideoBankFromFile("videoBack_DT2.bin", videoPageId);
+    if (videoPageId < 0x96)
+    {
+        return Utils.readVideoBankFromFile("videoBack_DT2.bin", videoPageId);
+    }
+    else
+    {
+        return Utils.readVideoBankFromFile("videoMap_DT2.bin", 0x90);
+    }
   }
   
   public int getBigBlocksCountForLevel(int levelNo)
@@ -99,7 +118,7 @@ public class Data:CapcomBase
     byte[] bigBlockIndexes = new byte[getBigBlocksCount()*4];
     byte[] tempIndexes = Utils.readDataFromUnalignedArrays(Globals.romdata, addrPointers[0], addrPointers[1], addrPointers[2], addrPointers[3], blocksCount);
     Array.Copy(tempIndexes, bigBlockIndexes, blocksCount*4); 
-    return Utils.unlinearizeBigBlocks(bigBlockIndexes, 2, 2);
+    return Utils.unlinearizeBigBlocks<BigBlock>(bigBlockIndexes, 2, 2);
   }
   
   public void setBigBlocksDt2(int bigTileIndex, BigBlock[] bigBlocks)
@@ -152,6 +171,48 @@ public class Data:CapcomBase
     return true;
   }*/
   
+  public class Dt2ObjRec : ObjRec
+  {
+    public Dt2ObjRec(ObjRec b, int _index)
+        :base(b)
+    {
+        index = _index;
+    }
+    
+    public override int getType()
+    {
+        return index < 0xA0 ? 0 : 5;
+    }
+    
+    int index;
+  }
+  
+  public ObjRec[] getBlocksDt2(int blockIndex)
+  {
+    ObjRec[] blocks = Utils.readBlocksFromAlignedArrays(Globals.romdata, ConfigScript.getTilesAddr(blockIndex), getBlocksCount());
+    //decode typeColor
+    int palInfoCount = getBlocksCount()/4;
+    var palInfo = new byte[palInfoCount];
+    for (int i = 0; i < palInfoCount; i++)
+    {
+        palInfo[i] = (byte)blocks[i].typeColor;
+    }
+    for (int i = 0; i < blocks.Length; i++)
+    {
+        var palInfoByte = palInfo[i/4];
+        int parByteNo = i % 4;
+        blocks[i].typeColor = (byte)((palInfoByte >> parByteNo*2) & 3);
+    }
+    //
+    //rebuild blocks to dt2 blocks
+    for (int i = 0; i < blocks.Length; i++)
+    {
+        blocks[i] = new Dt2ObjRec(blocks[i], i);
+    }
+    //
+    return blocks;
+  }
+  
   public void setBlocksDt2(int blockIndex, ObjRec[] objects)
   {
     int addr = ConfigScript.getTilesAddr(blockIndex);
@@ -159,14 +220,22 @@ public class Data:CapcomBase
     for (int i = 0; i < count; i++)
     {
         var obj = objects[i];
-        Globals.romdata[addr + i] = obj.c1;
-        Globals.romdata[addr + count * 1 + i] = obj.c2;
-        Globals.romdata[addr + count * 2 + i] = obj.c3;
-        Globals.romdata[addr + count * 3 + i] = obj.c4;
+        Globals.romdata[addr + i] = (byte)obj.c1;
+        Globals.romdata[addr + count * 1 + i] = (byte)obj.c2;
+        Globals.romdata[addr + count * 2 + i] = (byte)obj.c3;
+        Globals.romdata[addr + count * 3 + i] = (byte)obj.c4;
     }
-    for (int i = 0; i < count/4; i++)
+    
+    int palInfoCount = getBlocksCount()/4;
+    for (int i = 0; i < palInfoCount; i++)
     {
-        Globals.romdata[addr + count * 4 + i] = objects[i].typeColor;
+        var palInfoByte = 
+          (objects[i*4+0].typeColor<<0) | 
+          (objects[i*4+1].typeColor<<2) |
+          (objects[i*4+2].typeColor<<4) | 
+          (objects[i*4+3].typeColor<<6);
+          
+        Globals.romdata[addr + count * 4 + i] = (byte)palInfoByte;
     }
   }
   //--------------------------------------------------------------------------------------------

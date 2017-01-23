@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
+using System.Linq;
 
 namespace CadEditor
 {
@@ -19,15 +20,11 @@ namespace CadEditor
         {
             showAxis = true;
             cbSubpalette.DrawItem += new DrawItemEventHandler(cbSubpalette_DrawItemEvent);
-            videoSprites[0] = videoSprites1;
-            videoSprites[1] = videoSprites2;
-            videoSprites[2] = videoSprites3;
-            videoSprites[3] = videoSprites4;
             dirty = false;
 
+            reloadLevel();
             preparePanel();
             resetControls();
-            reloadLevel();
 
             readOnly = false; //must be read from config
             btSave.Enabled = !readOnly;
@@ -40,18 +37,18 @@ namespace CadEditor
 
         protected virtual void resetControls()
         {
-            Utils.setCbItemsCount(cbVideo, ConfigScript.videoOffset.recCount);
-            Utils.setCbItemsCount(cbTileset, ConfigScript.blocksOffset.recCount);
-            Utils.setCbItemsCount(cbPalette, ConfigScript.palOffset.recCount);
+            UtilsGui.setCbItemsCount(cbVideo, ConfigScript.videoOffset.recCount);
+            UtilsGui.setCbItemsCount(cbTileset, ConfigScript.blocksOffset.recCount);
+            UtilsGui.setCbItemsCount(cbPalette, ConfigScript.palOffset.recCount);
 
 
-            Utils.setCbIndexWithoutUpdateLevel(cbTileset, cbLevelSelect_SelectedIndexChanged, formMain.CurActiveBigBlockNo);  //small blocks no?
-            Utils.setCbIndexWithoutUpdateLevel(cbVideo, VisibleOnlyChange_SelectedIndexChanged, formMain.CurActiveVideoNo - 0x90);
-            Utils.setCbIndexWithoutUpdateLevel(cbPalette, VisibleOnlyChange_SelectedIndexChanged, formMain.CurActivePalleteNo);
+            UtilsGui.setCbIndexWithoutUpdateLevel(cbTileset, cbLevelSelect_SelectedIndexChanged, formMain.CurActiveBigBlockNo);  //small blocks no?
+            UtilsGui.setCbIndexWithoutUpdateLevel(cbVideo, VisibleOnlyChange_SelectedIndexChanged, formMain.CurActiveVideoNo - 0x90);
+            UtilsGui.setCbIndexWithoutUpdateLevel(cbPalette, VisibleOnlyChange_SelectedIndexChanged, formMain.CurActivePalleteNo);
             curActiveBigBlock = formMain.CurActiveBigBlockNo; //small blocks no?
             curActiveVideo = formMain.CurActiveVideoNo;
             curActivePal = formMain.CurActivePalleteNo;
-            Utils.setCbIndexWithoutUpdateLevel(cbSubpalette, cbSubpalette_SelectedIndexChanged);
+            UtilsGui.setCbIndexWithoutUpdateLevel(cbSubpalette, cbSubpalette_SelectedIndexChanged);
         }
 
         protected void reloadLevel(bool resetDirty = true)
@@ -118,11 +115,10 @@ namespace CadEditor
         protected void setVideo()
         {
             byte backId = getBackId();
+            var chunk = ConfigScript.getVideoChunk(backId);
             for (int i = 0; i < 4; i++)
             {
-                Bitmap b = ConfigScript.videoNes.makeImageStrip(ConfigScript.getVideoChunk(backId), palette, i, 2, true);
-                videoSprites[i].Images.Clear();
-                videoSprites[i].Images.AddStrip(b);
+                videoSprites[i] = Enumerable.Range(0,256).Select(t => ConfigScript.videoNes.makeImage(t, chunk, palette, i, 2, true)).ToArray();
             }
         }
 
@@ -135,7 +131,7 @@ namespace CadEditor
                 {
                     int x = i % 16;
                     int y = i / 16;
-                    g.DrawImage(videoSprites[curSubpalIndex].Images[i], new Rectangle(x * 16, y * 16, 16, 16));
+                    g.DrawImage(videoSprites[curSubpalIndex][i], new Rectangle(x * 16, y * 16, 16, 16));
                 }
             }
             mapScreen.Image = b;
@@ -151,10 +147,12 @@ namespace CadEditor
 
         protected byte[] palette = new byte[Globals.PAL_LEN];
         protected ObjRec[] objects = new ObjRec[256];
-        protected ImageList[] videoSprites = new ImageList[4];
+        protected Bitmap[][] videoSprites = new Bitmap[4][];
         protected bool dirty;
         protected bool readOnly;
         protected bool showAxis;
+
+        private const int TILE_SIZE = 16;
 
         protected string[] subPalItems = { "1", "2", "3", "4" };
 
@@ -192,43 +190,26 @@ namespace CadEditor
             int y = e.Y / 16;
             PictureBox p = (PictureBox)sender;
             int objIndex = (int)p.Tag;
-            if (x == 0)
+            var obj = objects[objIndex];
+            if (x >= 0 && x < obj.w && y>=0 && y < obj.h)
             {
-                if (y == 0)
+                if (left)
                 {
-                    if (left)
-                        objects[objIndex].c1 = (byte)curActiveBlock;
-                    else
-                        curActiveBlock = objects[objIndex].c1;
+                    obj.indexes[y * obj.w + x] = curActiveBlock;
                 }
                 else
                 {
-                    if (left)
-                        objects[objIndex].c3 = (byte)curActiveBlock;
-                    else
-                        curActiveBlock = objects[objIndex].c3;
-                }
-            }
-            else
-            {
-                if (y == 0)
-                {
-                    if (left)
-                        objects[objIndex].c2 = (byte)curActiveBlock;
-                    else
-                        curActiveBlock = objects[objIndex].c2;
-                }
-                else
-                {
-                    if (left)
-                        objects[objIndex].c4 = (byte)curActiveBlock;
-                    else
-                        curActiveBlock = objects[objIndex].c4;
-
+                    //action 1
+                    int palIndex = (y >> 1) * (obj.w >> 1) + (x >> 1);
+                    int curPal = obj.palBytes[palIndex];
+                    if (++curPal > 3) { curPal = 0; }
+                    obj.palBytes[palIndex] = curPal;
+                    //action 2
+                    curActiveBlock = obj.indexes[y * obj.w + x];
                 }
             }
             p.Image = makeObjImage(objIndex);
-            pbActive.Image = videoSprites[curSubpalIndex].Images[curActiveBlock];
+            pbActive.Image = videoSprites[curSubpalIndex][curActiveBlock];
             lbActive.Text = String.Format("({0:X})", curActiveBlock);
             dirty = true;
         }
@@ -243,16 +224,6 @@ namespace CadEditor
             dirty = true;
         }
 
-        protected void cbColor_SelectedIndexChangedDt2(object sender, EventArgs e)
-        {
-            ComboBox cb = (ComboBox)sender;
-            PictureBox pb = (PictureBox)cb.Tag;
-            int index = (int)pb.Tag;
-            objects[index / 4].setSubpalleteForDt2(index % 4, cb.SelectedIndex);
-            pb.Image = makeObjImageDt2((int)pb.Tag);
-            dirty = true;
-        }
-
         protected void cbType_SelectedIndexChanged(object sender, EventArgs e)
         {
             ComboBox cb = (ComboBox)sender;
@@ -263,35 +234,7 @@ namespace CadEditor
 
         public Image makeObjImage(int index)
         {
-            if (Globals.getGameType() == GameType.DT2)
-            {
-                return makeObjImageDt2(index);
-            }
-            Bitmap b = new Bitmap(32, 32);
-            var obj = objects[index];
-            using (Graphics g = Graphics.FromImage(b))
-            {
-                g.DrawImage(videoSprites[obj.getSubpallete()].Images[obj.c1], new Rectangle(0, 0, 16, 16));
-                g.DrawImage(videoSprites[obj.getSubpallete()].Images[obj.c2], new Rectangle(16, 0, 16, 16));
-                g.DrawImage(videoSprites[obj.getSubpallete()].Images[obj.c3], new Rectangle(0, 16, 16, 16));
-                g.DrawImage(videoSprites[obj.getSubpallete()].Images[obj.c4], new Rectangle(16, 16, 16, 16));
-            }
-            return b;
-        }
-
-        public Image makeObjImageDt2(int index)
-        {
-            Bitmap b = new Bitmap(32, 32);
-            var obj = objects[index];
-            var objectForColor = objects[index / 4];
-            using (Graphics g = Graphics.FromImage(b))
-            {
-                g.DrawImage(videoSprites[objectForColor.getSubpalleteForDt2(index % 4)].Images[obj.c1], new Rectangle(0, 0, 16, 16));
-                g.DrawImage(videoSprites[objectForColor.getSubpalleteForDt2(index % 4)].Images[obj.c2], new Rectangle(16, 0, 16, 16));
-                g.DrawImage(videoSprites[objectForColor.getSubpalleteForDt2(index % 4)].Images[obj.c3], new Rectangle(0, 16, 16, 16));
-                g.DrawImage(videoSprites[objectForColor.getSubpalleteForDt2(index % 4)].Images[obj.c4], new Rectangle(16, 16, 16, 16));
-            }
-            return b;
+            return ConfigScript.videoNes.makeObject(index, objects, videoSprites, 2.0f, MapViewType.Tiles);
         }
 
         protected void mapScreen_MouseClick(object sender, MouseEventArgs e)
@@ -299,7 +242,7 @@ namespace CadEditor
             int x = e.X / 16;
             int y = e.Y / 16;
             curActiveBlock = y * 16 + x;
-            pbActive.Image = videoSprites[curSubpalIndex].Images[curActiveBlock];
+            pbActive.Image = videoSprites[curSubpalIndex][curActiveBlock];
             lbActive.Text = String.Format("({0:X})", curActiveBlock);
             dirty = true;
         }
@@ -373,63 +316,70 @@ namespace CadEditor
             mapObjects.SuspendLayout();
             for (int i = 0; i < ConfigScript.getBlocksCount(); i++)
             {
+                var obj = objects[i];
+                int curPanelX = 0;
+
                 Panel fp = new Panel();
-                fp.Size = new Size(mapObjects.Width - 25, 32);
+                fp.Size = new Size(mapObjects.Width - 25, TILE_SIZE * obj.h);
                 //
                 Label lb = new Label();
-                lb.Location = new Point(0, 0);
+                lb.Location = new Point(curPanelX, 0);
                 lb.Size = new Size(24, 32);
                 lb.Tag = i;
                 lb.Text = String.Format("{0:X}",i);
                 fp.Controls.Add(lb);
+                curPanelX += lb.Size.Width;
                 //
                 PictureBox pb = new PictureBox();
-                pb.Location = new Point(24, 0);
-                pb.Size = new Size(32, 32);
+                pb.Location = new Point(curPanelX, 0);
+                pb.Size = new Size(TILE_SIZE * obj.w, TILE_SIZE * obj.h);
                 pb.Tag = i;
                 pb.MouseClick += new MouseEventHandler(pb_MouseClick);
                 fp.Controls.Add(pb);
+                curPanelX += pb.Size.Width + 6;
                 //
                 ComboBox cbColor = new ComboBox();
                 cbColor.Size = cbSubpalette.Size;
-                cbColor.Location = new Point(60, 0);
+                cbColor.Location = new Point(curPanelX, 0);
                 cbColor.Tag = pb;
                 cbColor.DrawMode = DrawMode.OwnerDrawVariable;
                 cbColor.DrawItem += new DrawItemEventHandler(cbSubpalette_DrawItemEvent);
                 cbColor.Items.AddRange(subPalItems);
                 cbColor.DropDownStyle = ComboBoxStyle.DropDownList;
-                if (Globals.getGameType() != GameType.DT2)
-                    cbColor.SelectedIndexChanged += cbColor_SelectedIndexChanged;
-                else
-                    cbColor.SelectedIndexChanged += cbColor_SelectedIndexChangedDt2;
+                cbColor.SelectedIndexChanged += cbColor_SelectedIndexChanged;
                 fp.Controls.Add(cbColor);
+                curPanelX += cbColor.Size.Width;
                 //
                 ComboBox cbType = new ComboBox();
                 var objectTypes = ConfigScript.getBlockTypeNames();
                 cbType.Items.AddRange(objectTypes);
-                cbType.Location = new Point(156, 0);
+                cbType.Location = new Point(curPanelX, 0);
                 cbType.Size = new Size(120, 21);
                 cbType.Tag = i;
                 cbType.DropDownStyle = ComboBoxStyle.DropDownList;
-                if (Globals.getGameType() != GameType.DT2)
-                  cbType.SelectedIndexChanged += cbType_SelectedIndexChanged;
-                cbType.Enabled = Globals.getGameType() != GameType.DT2;
                 fp.Controls.Add(cbType);
                 mapObjects.Controls.Add(fp);
             }
             mapObjects.ResumeLayout();
+
+            refillPanel();
         }
 
         protected virtual void refillPanel()
         {
             //GUI
+            if (mapObjects.Controls.Count == 0)
+            {
+                return;
+            }
+
             for (int i = 0; i < ConfigScript.getBlocksCount(); i++)
             {
                 Panel p = (Panel)mapObjects.Controls[i];
                 PictureBox pb = (PictureBox)p.Controls[1];
                 pb.Image = makeObjImage(i);
                 ComboBox cbColor = (ComboBox)p.Controls[2];
-                cbColor.SelectedIndex = Globals.getGameType() == GameType.DT2 ? objects[i/4].getSubpalleteForDt2(i%4) : objects[i].getSubpallete();
+                cbColor.SelectedIndex = objects[i].getSubpallete();
                 ComboBox cbType = (ComboBox)p.Controls[3];
                 cbType.SelectedIndex = objects[i].getType();
             }
@@ -506,11 +456,11 @@ namespace CadEditor
             var data = new byte[blocksCount * 5];
             for (int i = 0; i < blocksCount; i++)
             {
-                data[i] = objects[i].c1;
-                data[blocksCount * 1 + i] = objects[i].c2;
-                data[blocksCount * 2 + i] = objects[i].c3;
-                data[blocksCount * 3 + i] = objects[i].c4;
-                data[blocksCount * 4 + i] = objects[i].typeColor;
+                data[i] = (byte)objects[i].c1;
+                data[blocksCount * 1 + i] = (byte)objects[i].c2;
+                data[blocksCount * 2 + i] = (byte)objects[i].c3;
+                data[blocksCount * 3 + i] = (byte)objects[i].c4;
+                data[blocksCount * 4 + i] = (byte)objects[i].typeColor;
             }
 
             Utils.saveDataToFile(fn, data);

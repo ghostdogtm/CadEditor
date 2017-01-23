@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
+using PluginMapEditor;
 
 namespace CadEditor
 {
@@ -19,7 +20,7 @@ namespace CadEditor
 
         private void reloadAllData()
         {
-            mapData = new byte[1024];
+            mapData = MapConfig.loadMap(curActiveDataAddr);
             setPal();
             byte videoPageId = (byte)(curActiveVideo + 0x90);
             videos = new ImageList[4];
@@ -32,12 +33,12 @@ namespace CadEditor
             }
 
             prepareBlocksPanel();
-            reloadMap();
+            mapScreen.Invalidate();
         }
 
         private void EditMap_Load(object sender, EventArgs e)
         {
-            Utils.setCbItemsCount(cbScreenNo, screensInfo.Length);
+            UtilsGui.setCbItemsCount(cbScreenNo, MapConfig.mapsInfo.Length);
             cbScreenNo.SelectedIndex = 0;
             //reloadAllData();
         }
@@ -50,82 +51,17 @@ namespace CadEditor
             curPal[0] = curPal[4] = curPal[8] = curPal[12] = 0x0F;
         }
 
-        private void reloadMap()
-        {
-            int romAddr = curActiveDataAddr;
-            while (Globals.romdata[romAddr] != 0xFF)
-            {
-                int videoAddr = Utils.readWord(Globals.romdata, romAddr) - 0x2000;
-                romAddr += 2;
-                int count = Globals.romdata[romAddr++];
-                for (int i = 0; i < count; i++)
-                    mapData[videoAddr++] = Globals.romdata[romAddr++];
-            }
-            mapScreen.Invalidate();
-        }
-
-        void foundLongestZeros(byte[] data, int startIndex, int endIndex, out int firstZeroIndex, out int lastZeroIndex)
-        {
-            int longestZeroLen = 0;
-            int curZeroLen = 0;
-            int curFirstZeroIndex = -1;
-            for (int i = startIndex; i < endIndex; i++)
-            {
-                if (data[i] == 0)
-                {
-                    if (++curZeroLen > longestZeroLen)
-                    {
-                        longestZeroLen = curZeroLen;
-                        curFirstZeroIndex = i - longestZeroLen + 1;
-                    }
-                }
-                else
-                {
-                    curZeroLen = 0;
-                }
-            }
-            firstZeroIndex = curFirstZeroIndex;
-            lastZeroIndex = firstZeroIndex + longestZeroLen - 1;
-        }
-
-        void recursiveS(byte[] d, int first, int last, MemoryStream outBuf)
-        {
-            int f, e;
-            foundLongestZeros(d, first, last, out f, out e);
-            if (e - f >= 5)
-            {
-                recursiveS(d, first, f, outBuf);
-                recursiveS(d, e + 1, last, outBuf);
-            }
-            else
-            {
-                while (last > first)
-                {
-                    int addr = first + 0x2000;
-                    outBuf.WriteByte((byte)(addr >> 8));
-                    outBuf.WriteByte((byte)(addr & 0xFF));
-                    outBuf.WriteByte((byte)Math.Min(last - first, 255));
-                    for (int ind = 0; ind < 255 && (first+ind) < last; ind++)
-                        outBuf.WriteByte(d[first+ind]);
-                    first += 255;
-                }
-            }
-        }
-
         private void saveMap()
         {
-            byte[] x = new byte[(256+3)*4];
-            var s = new MemoryStream(x);
-            recursiveS(mapData, 0, mapData.Length, s);
-            s.WriteByte(0xFF); //write stop byte
-            long nn = s.Position;
+            byte[] x;
+            int nn = MapConfig.saveMap(mapData, out x);
 
             //
             try
             {
-                if (ofOpenDialog.ShowDialog() == DialogResult.OK)
+                if (sfSaveDialog.ShowDialog() == DialogResult.OK)
                 {
-                    var fname = ofOpenDialog.FileName;
+                    var fname = sfSaveDialog.FileName;
                     using (FileStream f = File.OpenWrite(fname))
                         f.Write(x, 0, (int)nn);
                 }
@@ -224,24 +160,13 @@ namespace CadEditor
 
         private void cbVideoNo_SelectedIndexChanged(object sender, EventArgs e)
         {
-            ScreenInfo si = screensInfo[cbScreenNo.SelectedIndex];
+            MapInfo si = MapConfig.mapsInfo[cbScreenNo.SelectedIndex];
             curActiveVideo = si.videoNo;
             curActiveDataAddr = si.dataAddr;
             curActivePalAddr = si.palAddr;
             reloadAllData();
         }
-
-        struct ScreenInfo
-        {
-            public int dataAddr;
-            public int palAddr;
-            public int videoNo;
-        }
-
-        ScreenInfo[] screensInfo = new ScreenInfo[]
-        { 
-            new ScreenInfo(){ dataAddr = 0x80B1, palAddr = 0x1C43D, videoNo = 9 },
-            new ScreenInfo(){ dataAddr = 0x83FC, palAddr = 0x8E6E , videoNo = 10 } 
-        };
     }
+
+
 }

@@ -50,6 +50,8 @@
             this.cbViewType = new System.Windows.Forms.ComboBox();
             this.label6 = new System.Windows.Forms.Label();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.cbHierarchyLevel = new System.Windows.Forms.ComboBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.lbActive = new System.Windows.Forms.Label();
             this.lbBigBlockNo = new System.Windows.Forms.Label();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
@@ -59,6 +61,9 @@
             this.tbbImport = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.tbbDeleteAll = new System.Windows.Forms.ToolStripButton();
+            this.smallBlocks2 = new System.Windows.Forms.ImageList(this.components);
+            this.smallBlocks3 = new System.Windows.Forms.ImageList(this.components);
+            this.smallBlocks4 = new System.Windows.Forms.ImageList(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.mapScreen)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbActive)).BeginInit();
             this.pnGeneric.SuspendLayout();
@@ -87,10 +92,10 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.blocksPanel.AutoScroll = true;
-            this.blocksPanel.Location = new System.Drawing.Point(11, 260);
+            this.blocksPanel.Location = new System.Drawing.Point(11, 303);
             this.blocksPanel.Margin = new System.Windows.Forms.Padding(4);
             this.blocksPanel.Name = "blocksPanel";
-            this.blocksPanel.Size = new System.Drawing.Size(242, 406);
+            this.blocksPanel.Size = new System.Drawing.Size(242, 363);
             this.blocksPanel.TabIndex = 7;
             // 
             // cbTileset
@@ -105,17 +110,17 @@
             "Tileset4 (13000)",
             "Tileset5 (17000)",
             "Tileset6 (1B000)"});
-            this.cbTileset.Location = new System.Drawing.Point(11, 23);
+            this.cbTileset.Location = new System.Drawing.Point(8, 64);
             this.cbTileset.Margin = new System.Windows.Forms.Padding(4);
             this.cbTileset.Name = "cbTileset";
-            this.cbTileset.Size = new System.Drawing.Size(333, 24);
+            this.cbTileset.Size = new System.Drawing.Size(257, 24);
             this.cbTileset.TabIndex = 8;
             this.cbTileset.SelectedIndexChanged += new System.EventHandler(this.cbLevelPair_SelectedIndexChanged);
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(11, 6);
+            this.label1.Location = new System.Drawing.Point(8, 47);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(53, 17);
@@ -140,7 +145,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(193, 220);
+            this.label3.Location = new System.Drawing.Point(170, 258);
             this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(95, 17);
@@ -161,10 +166,10 @@
             this.pnGeneric.Controls.Add(this.cbPaletteNo);
             this.pnGeneric.Controls.Add(this.label7);
             this.pnGeneric.Controls.Add(this.cbVideoNo);
-            this.pnGeneric.Location = new System.Drawing.Point(11, 69);
+            this.pnGeneric.Location = new System.Drawing.Point(8, 110);
             this.pnGeneric.Margin = new System.Windows.Forms.Padding(4);
             this.pnGeneric.Name = "pnGeneric";
-            this.pnGeneric.Size = new System.Drawing.Size(335, 144);
+            this.pnGeneric.Size = new System.Drawing.Size(264, 144);
             this.pnGeneric.TabIndex = 54;
             // 
             // label8
@@ -201,7 +206,7 @@
             this.cbSmallBlock.Location = new System.Drawing.Point(8, 69);
             this.cbSmallBlock.Margin = new System.Windows.Forms.Padding(4);
             this.cbSmallBlock.Name = "cbSmallBlock";
-            this.cbSmallBlock.Size = new System.Drawing.Size(313, 24);
+            this.cbSmallBlock.Size = new System.Drawing.Size(249, 24);
             this.cbSmallBlock.TabIndex = 49;
             this.cbSmallBlock.SelectedIndexChanged += new System.EventHandler(this.cbLevelPair_SelectedIndexChanged);
             // 
@@ -239,7 +244,7 @@
             this.cbPaletteNo.Location = new System.Drawing.Point(8, 117);
             this.cbPaletteNo.Margin = new System.Windows.Forms.Padding(4);
             this.cbPaletteNo.Name = "cbPaletteNo";
-            this.cbPaletteNo.Size = new System.Drawing.Size(313, 24);
+            this.cbPaletteNo.Size = new System.Drawing.Size(249, 24);
             this.cbPaletteNo.TabIndex = 47;
             this.cbPaletteNo.SelectedIndexChanged += new System.EventHandler(this.cbLevelPair_SelectedIndexChanged);
             // 
@@ -269,7 +274,7 @@
             this.cbVideoNo.Location = new System.Drawing.Point(7, 23);
             this.cbVideoNo.Margin = new System.Windows.Forms.Padding(4);
             this.cbVideoNo.Name = "cbVideoNo";
-            this.cbVideoNo.Size = new System.Drawing.Size(315, 24);
+            this.cbVideoNo.Size = new System.Drawing.Size(250, 24);
             this.cbVideoNo.TabIndex = 41;
             this.cbVideoNo.SelectedIndexChanged += new System.EventHandler(this.cbLevelPair_SelectedIndexChanged);
             // 
@@ -305,7 +310,7 @@
             "Blocks",
             "Block Types",
             "Block numbers"});
-            this.cbViewType.Location = new System.Drawing.Point(101, 226);
+            this.cbViewType.Location = new System.Drawing.Point(88, 267);
             this.cbViewType.Margin = new System.Windows.Forms.Padding(4);
             this.cbViewType.Name = "cbViewType";
             this.cbViewType.Size = new System.Drawing.Size(84, 24);
@@ -315,7 +320,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(19, 230);
+            this.label6.Location = new System.Drawing.Point(8, 270);
             this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(72, 17);
@@ -335,6 +340,8 @@
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.cbHierarchyLevel);
+            this.splitContainer1.Panel1.Controls.Add(this.label2);
             this.splitContainer1.Panel1.Controls.Add(this.lbActive);
             this.splitContainer1.Panel1.Controls.Add(this.blocksPanel);
             this.splitContainer1.Panel1.Controls.Add(this.cbTileset);
@@ -354,6 +361,27 @@
             this.splitContainer1.SplitterDistance = 271;
             this.splitContainer1.SplitterWidth = 5;
             this.splitContainer1.TabIndex = 62;
+            // 
+            // cbHierarchyLevel
+            // 
+            this.cbHierarchyLevel.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbHierarchyLevel.FormattingEnabled = true;
+            this.cbHierarchyLevel.Location = new System.Drawing.Point(8, 21);
+            this.cbHierarchyLevel.Margin = new System.Windows.Forms.Padding(4);
+            this.cbHierarchyLevel.Name = "cbHierarchyLevel";
+            this.cbHierarchyLevel.Size = new System.Drawing.Size(257, 24);
+            this.cbHierarchyLevel.TabIndex = 60;
+            this.cbHierarchyLevel.SelectedIndexChanged += new System.EventHandler(this.cbLevelPair_SelectedIndexChanged);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(8, 4);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(106, 17);
+            this.label2.TabIndex = 61;
+            this.label2.Text = "Hierarchy level:";
             // 
             // lbActive
             // 
@@ -442,6 +470,24 @@
             this.tbbDeleteAll.Text = "Clear All";
             this.tbbDeleteAll.Click += new System.EventHandler(this.btClear_Click);
             // 
+            // smallBlocks2
+            // 
+            this.smallBlocks2.ColorDepth = System.Windows.Forms.ColorDepth.Depth24Bit;
+            this.smallBlocks2.ImageSize = new System.Drawing.Size(16, 16);
+            this.smallBlocks2.TransparentColor = System.Drawing.Color.Transparent;
+            // 
+            // smallBlocks3
+            // 
+            this.smallBlocks3.ColorDepth = System.Windows.Forms.ColorDepth.Depth24Bit;
+            this.smallBlocks3.ImageSize = new System.Drawing.Size(16, 16);
+            this.smallBlocks3.TransparentColor = System.Drawing.Color.Transparent;
+            // 
+            // smallBlocks4
+            // 
+            this.smallBlocks4.ColorDepth = System.Windows.Forms.ColorDepth.Depth24Bit;
+            this.smallBlocks4.ImageSize = new System.Drawing.Size(16, 16);
+            this.smallBlocks4.TransparentColor = System.Drawing.Color.Transparent;
+            // 
             // BigBlockEdit
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -505,5 +551,10 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.Label lbBigBlockNo;
         private System.Windows.Forms.Label lbActive;
+        private System.Windows.Forms.ComboBox cbHierarchyLevel;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.ImageList smallBlocks2;
+        private System.Windows.Forms.ImageList smallBlocks3;
+        private System.Windows.Forms.ImageList smallBlocks4;
     }
 }

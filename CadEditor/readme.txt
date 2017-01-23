@@ -1,9 +1,9 @@
 -------------------------------------------------------------------------------
 [RUS]
 Редактор уровней для игр [NES/SEGA/SNES/GBA].
-Версия 3.6
+Версия 4.0
 -------------------------------------------------------------------------------
-полный список поддерживаемых игр в файле cad_editor_supported_games.txt
+Полный список поддерживаемых игр в файле cad_editor_supported_games.txt
 ------------------------------------------------------------------------------- 
 !!! Рекомендуется копировать файл с промежуточным результатом в отдельную папку
     и проверять на работоспособность почаще!
@@ -325,7 +325,69 @@ v3.6
   Hook
   Indiana Jones Jr
   Super Robin Hood
+  
+v3.7
+- Конфиги для игры Tom & Jerry (and Tuffy)[NES] (редактор экранов/блоков/врагов/объектов) для всех уровней.
+- Конфиги для игры Jungle Book [SMD] (редактор слоёв A и B) для всех уровней.
+- Редактор карты мира для Duck Tales 2 [NES].
+- Конфиги для игр Micromashines (1 уровень картинками), Aliens 3 (уровень 1-2 картинками), Flintstones.
+- Мелкие улучшения редактора врагов.
 
+v3.8
+- Поддержка игр с любым уровнем вложенности макроблоков.
+- Запоминание последего откротого ROM и конфига.
+- Исправление ошибок.
+- Конфиги блоков, макроблоков, макромакроблоков и макромакромакроблоков для игры Rockin' Kats
+- Конфиги экранов картинками для игр (по 1 уровню):
+  Batman Returns
+  Ninja Gaiden 3
+  Mighty Final Fight
+  Jackie Chan Action Kung Fu
+  Yo-Noid
+  Gun Smoke
+  Little Samson
+  Darkman
+  
+v3.9
+- Поддержка игр с битами палитры, заданными на уровне макроблоков (правой кнопкой в редакторе макроблоков меняются палитры). Примеры: 
+  Tiny Toon Adventures
+  Ninja Gaiden 3
+- Редактор дампов для Felix the Cat[NES] (уровни 1-1, 1-2, 1-3). Для сохранения дампа в РОМ потребуется компрессор.
+- Редактор блоков/макроблоков для Shatterhand [NES] (уровень 1). Автор: Proton
+- Редактор блоков/макроблоков для Rokin' Kats [NES] (все уровни).
+- Редактор стартового экрана Chip and Dale (через плагин редактора карты).
+- Конфиги экранов картинками (автор Roket) [NES]:
+  Addams Family: The Pugsley's Scavenger Hunt
+  Moon Crystal
+  Mappy Kids
+  Predator
+- Конфиги экранов картинками (автор DANGER X)
+  Mighty Final Fight
+  
+v4.0
+- Фикс бага с отсуствием скролл-бара при маленьких разрешениях экрана.
+- Поддержка маленьких блоков любого размера.
+- Редактор блоков для игр (по одному уровню)
+    Yo-Noid
+    Power Blade
+    Power Blade 2
+    Contra Force
+    Batman Returns
+    Alien 3
+    Adventures Island 2
+    Adventures Island 3
+    Super C
+    Jackie Chan Action Kung Fu
+    Battletoads
+    Battletoads & Double Dragon - The Ultimate Team
+    Monster in My Pocket
+    Bucky O'Hare
+    Jackal
+    Darkman
+    Teenage Mutant Ninja Turtles
+    Teenage Mutant Ninja Turtles 2
+    Teenage Mutant Ninja Turtles 3
+  
 
 -------------------------------------------------------------------------------
 Благодарности: 
@@ -333,15 +395,17 @@ v3.6
   EmsiD       - рисование иконок, создание хаков Darkwing Duck.
   Mefisto     - идеи по развитию редактора, тестирование, написание компрессоров для сеговских игр.
   Lomax       - тестирование.
-  Roket       - тестирование, рисование иконок, конфиги для редактора анимаций Tale Spin, Little Mermaid, конфиги для игр Goonies 2, Mickey Mouse 3, Mickey's Adventures in Numberland, Hook, Indiana Jones Jr, Super Robin Hood
+  Roket       - тестирование, рисование иконок, конфиги для редактора анимаций Tale Spin, Little Mermaid, конфиги для игр Goonies 2, Mickey Mouse 3, Mickey's Adventures in Numberland, Hook, Indiana Jones Jr, Super Robin Hood, формат объектов Tom & Jerry.
   evgeny      - идеи по развитию редактора, тестирование.
   Matrixz     - документация к megaman 4.
   Nemesis_c   - конфиги для игры Zombies Ate My Neighbors.
   Darthatron  - документация по Final Fantasy Tactics Advance, кодирование.
   cah4e3      - собрание огромной базы Unpublished cheats list для NES.
   Megaplex    - документация по игре EarthWorm Jim 2.
-  DANGER X    - конфиги для игры Banana Prince.
+  DANGER X    - конфиги для игры Banana Prince, Mighty Final Fight
   Ti_         - помощь с дизассеблированием, конфиги для игр Contra Force, Jungle Book, Little Nemo, Battletoads, Battletoads & Double Dragon, Shatterhand, Tom & Jerry, Ninja Cats.
+  Alxr        - разбор формата уровней Rockin' Kats.
+  Proton      - финансовая поддержка, конфиги для Shatterhand
   
 -------------------------------------------------------------------------------
 Обратная связь: 
